@@ -31,7 +31,8 @@ class Whiteboard():
 
         flattened = [p for a in self.line_points for p in a]
 
-        self.undo_stack.append({'coords':flattened,'line_properties':self.line_properties,'tag':self.line_tag,'type':'draw'})
+        self.undo_stack.append({'coords':flattened,'line_properties':dict(self.line_properties),'tag':self.line_tag,'type':'draw'})
+        print(f'when stopped drawing color was {self.line_properties["fill"]}')
         self.line_tag_counter+=1
         self.line_tag="tag"+str(self.line_tag_counter)
 
@@ -73,8 +74,10 @@ class Whiteboard():
 
 
     def test(self):
-        print(f'undo_stack: {self.undo_stack}')
-        print(f'redo_stack: {self.redo_stack}')
+        for x in self.undo_stack:
+           print( x['line_properties'])
+
+        print('----')
 
     def change_mode(self,mode):
         self.canvas.unbind('<Button-1>')
@@ -193,7 +196,7 @@ class Whiteboard():
         erase_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=lambda:self.change_mode("eraser"))
 
         button_image = ctk.CTkImage(Image.open("text.png"), size=(26, 26))
-        text_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width)
+        text_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=self.test)
 
         button_image = ctk.CTkImage(Image.open("undo-alt.png"), size=(26, 26))
         undo_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=lambda:self.undo())
