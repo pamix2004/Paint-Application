@@ -1,4 +1,8 @@
 import tkinter as tk
+import customtkinter as ctk
+from tkinter import font
+from PIL import Image,ImageTk
+from CTkColorPicker import *
 
 class Whiteboard():
 
@@ -82,10 +86,11 @@ class Whiteboard():
             self.canvas.bind('<ButtonRelease>', self.stop_drawing)
             print('Changing mode to pen')
         elif mode=='eraser':
+            print('changed mode to eraser')
             self.canvas.bind('<Button-1>', self.erase)
 
 
-    def undo(self):
+    def undo(self,*args):
         if self.undo_stack:
 
             last_action = self.undo_stack.pop()
@@ -101,7 +106,7 @@ class Whiteboard():
                 self.canvas.create_line(coords,line_properties,tags=tag)
                 self.redo_stack.append(last_action)
 
-    def redo(self):
+    def redo(self,*args):
         if self.redo_stack:
             last_action = self.redo_stack.pop()
             last_type = last_action['type']
@@ -117,11 +122,20 @@ class Whiteboard():
                 self.undo_stack.append(last_action)
 
 
+    def change_brush_size(self,value):
+        print(f'changing to {int(value)}')
+        self.line_properties['width']=value
+    def change_brush_color(self,value):
+        self.line_properties['fill']=value
 
 
 
     def __init__(self):
-        self.window = tk.Tk()
+        self.window = ctk.CTk()
+        ctk.set_appearance_mode('dark')
+        ctk.set_default_color_theme("blue")
+
+        print(font.families())
 
         #It will be used to draw line from last registered point to the current one
         self.last_x= None
@@ -136,45 +150,76 @@ class Whiteboard():
         self.undo_stack = []
         self.redo_stack = []
 
+
+
         #Properties to draw line:
-        self.line_properties = {'width':20,'capstyle':tk.ROUND}
+        self.line_properties = {'width':20,'capstyle':tk.ROUND,'fill':"black"}
         self.line_points = []
 
         #Create canvas and kit to choose tools
-        self.canvas = tk.Canvas(self.window,background='gray',scrollregion=(0,0,2500,2500))
-        self.tools_kit = tk.LabelFrame(self.window,background='white')
+        self.canvas = ctk.CTkCanvas(self.window,scrollregion=(0,0,0,10000))
+        self.tools_kit = ctk.CTkFrame(self.window)
 
         #Design Layout for tools_kit and canvas
         self.window.columnconfigure(0,weight=1)
-        self.window.columnconfigure(1,weight=5)
+        self.window.columnconfigure(1,weight=500)
         self.window.rowconfigure(0,weight=1)
+
         self.tools_kit.grid(row=0, column=0, sticky="nsew")
         self.canvas.grid(row=0,column=1,sticky="nsew")
 
         #Setting default mode as drawing (pen)
         self.change_mode("pen")
 
-        self.scrollbar = tk.Scrollbar(orient='vertical',command=self.canvas.yview)
-        self.scrollbar.place(relx=1,rely=0,relheight=1,anchor='ne')
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
 
         self.canvas.bind_all("<w>",lambda event:self.canvas.yview_scroll(-1,"units"))
         self.canvas.bind_all("<s>", lambda event: self.canvas.yview_scroll(1, "units"))
 
-        self.test_button = tk.Button(self.tools_kit,text='test',command=self.test)
-        self.test_button.grid(row=0,column=0)
+        self.canvas.bind_all("<Control-z>", lambda event: self.undo(event))
+        self.canvas.bind_all("<Control-y>", lambda event: self.redo(event))
 
-        self.pen_button = tk.Button(self.tools_kit,text='Pen',command=lambda:self.change_mode('pen'))
-        self.eraser_button = tk.Button(self.tools_kit,text='Eraser',command=lambda:self.change_mode('eraser'))
-        self.text_button = tk.Button(self.tools_kit,text='Text')
-        self.undo_button = tk.Button(self.tools_kit,text='Undo',command=lambda:self.undo())
-        self.redo_button = tk.Button(self.tools_kit, text='Redo',command = lambda:self.redo())
 
-        self.pen_button.grid(row=1,column=0)
-        self.eraser_button.grid(row=1,column=1)
-        self.text_button.grid(row=1,column=2)
-        self.undo_button.grid(row=1,column=3)
-        self.redo_button.grid(row=1,column=4)
+
+        button_width = 25
+
+        self.tools = ctk.CTkFrame(master=self.tools_kit)
+        self.tools.pack(fill="x",padx=10,pady=50)
+
+        button_image = ctk.CTkImage(Image.open("pen-clip.png"), size=(26, 26))
+        pen_button = ctk.CTkButton(master=self.tools,image=button_image,text="",width=button_width,command=lambda:self.change_mode("pen"))
+
+        button_image = ctk.CTkImage(Image.open("eraser.png"), size=(26, 26))
+        erase_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=lambda:self.change_mode("eraser"))
+
+        button_image = ctk.CTkImage(Image.open("text.png"), size=(26, 26))
+        text_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width)
+
+        button_image = ctk.CTkImage(Image.open("undo-alt.png"), size=(26, 26))
+        undo_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=lambda:self.undo())
+
+        button_image = ctk.CTkImage(Image.open("redo-alt.png"), size=(26, 26))
+        redo_button = ctk.CTkButton(master=self.tools, image=button_image, text="", width=button_width,command=lambda:self.redo())
+
+        x=10
+        y=5
+
+        pen_button.grid(row=0,column=0,padx=x,pady=5)
+        erase_button.grid(row=0,column=1,padx=x,pady=5)
+        text_button.grid(row=0,column=2,padx=x,pady=5)
+        undo_button.grid(row=0,column=3,padx=x,pady=5)
+        redo_button.grid(row=0,column=4,padx=x,pady=5)
+
+        brush_size_slider = ctk.CTkSlider(from_=5,to=40,master=self.tools,command=self.change_brush_size)
+        brush_size_slider.grid(row=1,columnspan=5,sticky="nsew",pady=(25,15))
+
+        brush_size_label = ctk.CTkLabel(master=self.tools,text='BRUSH SIZE',font=("Arial",20))
+        brush_size_label.grid(row=2,column=0,columnspan=5)
+
+        color_picker= CTkColorPicker(master=self.tools,command=lambda chosen_color: self.change_brush_color(chosen_color))
+        color_picker.grid(row=3,column=0,columnspan=5,pady=25)
+
+
 
 
 
